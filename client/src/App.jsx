@@ -39,7 +39,14 @@ function App() {
   // Initialize Socket Connection
   useEffect(() => {
     // In production, socket connects to the same origin host. In development, it proxies via Vite.
-    socket = io();
+    // Force WebSocket transport — avoids slow HTTP long-polling which is the
+    // primary cause of lag. Falls back to polling only if WebSocket truly fails.
+    socket = io({
+      transports: ['websocket', 'polling'],
+      reconnectionDelay: 2000,        // Wait 2s before first reconnect attempt
+      reconnectionDelayMax: 10000,    // Cap at 10s between retries
+      timeout: 20000,                 // Connection timeout
+    });
 
     socket.on('connect', () => {
       setConnected(true);

@@ -64,8 +64,27 @@ async function fetchArticle(title) {
     $(
       '.navbox, .reflist, .reference, .mw-editsection, .portal, .authority-control, ' +
       '.catlinks, #mw-navigation, #mw-page-base, #mw-head-base, .sidebar, ' +
-      '.ambox, .sistersitebox, .sitelist, .infobox.navigation, .hatnote, .metadata'
+      '.ambox, .sistersitebox, .sitelist, .infobox.navigation, .hatnote, .metadata, ' +
+      // Additional trimming to reduce payload size
+      'style, script, .mw-empty-elt, [style*="display:none"], [style*="display: none"], ' +
+      '.error, .noprint, .mw-references-wrap, sup.reference, .mw-cite-backlink'
     ).remove();
+
+    // Strip all inline styles — reduces payload and prevents Wikipedia styles
+    // from overriding our own CSS
+    $('[style]').removeAttr('style');
+
+    // Strip SVG elements (complex, large, not needed for gameplay)
+    $('svg').remove();
+
+    // Strip all class/id attributes from images to prevent broken Wikipedia CSS
+    $('img').each((i, el) => {
+      const src = $(el).attr('src') || '';
+      // Convert protocol-relative URLs to https
+      if (src.startsWith('//')) {
+        $(el).attr('src', 'https:' + src);
+      }
+    });
 
     // Extract and rewrite links
     const links = new Set();

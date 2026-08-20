@@ -4,11 +4,15 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
+const compression = require('compression');
 const RoomManager = require('./game');
 const { fetchArticle } = require('./wikipedia');
 
 const app = express();
 const port = process.env.PORT || 5000;
+
+// Gzip compress all responses — critical for large Wikipedia HTML payloads
+app.use(compression());
 
 // Enable CORS for Vite dev server (usually localhost:5173 or similar)
 app.use(cors({
@@ -17,6 +21,10 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// Health check endpoint — ping this with UptimeRobot every 5 mins to prevent
+// Render free tier from sleeping (which causes cold-start disconnections)
+app.get('/health', (req, res) => res.json({ status: 'ok', uptime: process.uptime() }));
 
 // API route to get current page content (can be used as fallback or verification)
 app.get('/api/wiki/page', async (req, res) => {
@@ -42,6 +50,13 @@ if (process.env.NODE_ENV === 'production') {
 
 const server = http.createServer(app);
 const io = new Server(server, {
+  // Prefer WebSocket — avoids slow HTTP long-polling which causes lag on Render
+  transports: ['websocket', 'polling'],
+  // Increase timeouts to tolerate Render free tier's slower response times
+  // and prevent false disconnections under load
+  pingTimeout: 60000,   // Wait 60s for pong before declaring disconnect (default: 20s)
+  pingInterval: 25000,  // Send ping every 25s (default: 25s — keep as is)
+  upgradeTimeout: 30000, // Allow 30s for transport upgrade (default: 10s)
   cors: {
     origin: '*',
     methods: ['GET', 'POST']
