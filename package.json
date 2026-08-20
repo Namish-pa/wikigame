@@ -4,7 +4,7 @@
   "description": "Multiplayer Wikipedia Race Game",
   "main": "server/server.js",
   "scripts": {
-    "install:all": "npm install && npm install --prefix server && npm install --prefix client",
+    "install:all": "npm install && npm install --prefix server && npm install --include=dev --prefix client",
     "build:client": "npm run build --prefix client",
     "build": "npm run install:all && npm run build:client",
     "server": "npm run dev --prefix server",
